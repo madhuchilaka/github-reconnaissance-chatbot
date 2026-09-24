@@ -50,7 +50,17 @@ class AIAgent:
                 if item.type != "function_call":
                     continue
 
-                arguments = json.loads(item.arguments)
+                try:
+                    arguments = json.loads(item.arguments)
+                except json.JSONDecodeError:
+                    tool_outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": item.call_id,
+                            "output": "Invalid tool arguments: the tool-call arguments were not valid JSON.",
+                        }
+                    )
+                    continue
 
                 tool_result = self.runtime.call_tool(
                     item.name,

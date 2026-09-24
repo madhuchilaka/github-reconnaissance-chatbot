@@ -842,4 +842,70 @@ def test_ai_agent_sends_reconnaissance_instructions(monkeypatch):
     assert (
         fake_responses.calls[0]["instructions"]
         == RECONNAISSANCE_AGENT_INSTRUCTIONS
+    )   
+
+
+
+
+def test_ai_agent_handles_malformed_tool_arguments(monkeypatch):
+    monkeypatch.setattr(
+        "app.ai.client.OPENAI_API_KEY",
+        "test-key",
     )
+
+    from app.ai.agent import AIAgent
+    from app.ai.client import AIClient
+
+    class FakeToolCall:
+        type = "function_call"
+        name = "get_repository"
+        arguments = '{"owner": "microsoft", "repo": '
+        call_id = "call_invalid_json"
+
+    class FakeFirstResponse:
+        output = [FakeToolCall()]
+
+    class FakeFinalResponse:
+        output = []
+        output_text = "I could not process the repository request."
+
+    class FakeResponses:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+
+            if len(self.calls) == 1:
+                return FakeFirstResponse()
+
+            return FakeFinalResponse()
+
+    class FakeRuntime:
+        def list_tools(self):
+            class Result:
+                tools = []
+
+            return Result()
+
+        def call_tool(self, tool_name, arguments):
+            raise AssertionError("Tool should not be called")
+
+    fake_responses = FakeResponses()
+
+    agent = AIAgent(
+        AIClient(),
+        FakeRuntime(),
+    )
+
+    agent.client.client.responses = fake_responses
+
+    result = agent.respond("Analyze microsoft/vscode")
+
+    assert result == "I could not process the repository request."
+
+    second_call_input = fake_responses.calls[1]["input"]
+
+    assert second_call_input[-1]["type"] == "function_call_output"
+    assert second_call_input[-1]["call_id"] == "call_invalid_json"
+    assert "Invalid tool arguments" in second_call_input[-1]["output"]
