@@ -3,6 +3,7 @@ import json
 from app.ai.client import AIClient
 from app.ai.tools import get_openai_tools_from_mcp
 from app.mcp.runtime import MCPRuntime
+from app.ai.prompts import RECONNAISSANCE_AGENT_INSTRUCTIONS
 
 
 class AIAgent:
@@ -37,6 +38,7 @@ class AIAgent:
     def respond(self, user_message: str):
         response = self.client.client.responses.create(
             model="gpt-5-mini",
+            instructions=RECONNAISSANCE_AGENT_INSTRUCTIONS,
             input=user_message,
             tools=self.tools,
         )
@@ -68,6 +70,7 @@ class AIAgent:
 
             response = self.client.client.responses.create(
                 model="gpt-5-mini",
+                instructions=RECONNAISSANCE_AGENT_INSTRUCTIONS,
                 input=[
                     *response.output,
                     *tool_outputs,
