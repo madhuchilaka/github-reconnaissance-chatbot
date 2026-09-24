@@ -70,8 +70,8 @@ class AIAgent:
 
                     output = self._serialize_tool_result(tool_result)
 
-                except Exception as exc:
-                    output = f"Tool execution failed: {exc}"
+                except Exception:
+                    output = "Tool execution failed. The requested tool could not be completed."
 
                 tool_outputs.append(
                     {

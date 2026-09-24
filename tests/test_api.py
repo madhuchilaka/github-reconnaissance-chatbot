@@ -973,4 +973,72 @@ def test_ai_agent_handles_tool_execution_exception(monkeypatch):
 
     assert second_call_input[-1]["type"] == "function_call_output"
     assert second_call_input[-1]["call_id"] == "call_exception"
-    assert "MCP tool execution failed" in second_call_input[-1]["output"]
+    assert second_call_input[-1]["output"] == (
+        "Tool execution failed. The requested tool could not be completed."
+    )
+
+
+def test_ai_agent_does_not_expose_raw_tool_exception(monkeypatch):
+    monkeypatch.setattr(
+        "app.ai.client.OPENAI_API_KEY",
+        "test-key",
+    )
+
+    from app.ai.agent import AIAgent
+    from app.ai.client import AIClient
+
+    class FakeToolCall:
+        type = "function_call"
+        name = "get_repository"
+        arguments = '{"owner": "microsoft", "repo": "vscode"}'
+        call_id = "call_sensitive_exception"
+
+    class FakeFirstResponse:
+        output = [FakeToolCall()]
+
+    class FakeFinalResponse:
+        output = []
+        output_text = "I could not complete the repository request."
+
+    class FakeResponses:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+
+            if len(self.calls) == 1:
+                return FakeFirstResponse()
+
+            return FakeFinalResponse()
+
+    class FakeRuntime:
+        def list_tools(self):
+            class Result:
+                tools = []
+
+            return Result()
+
+        def call_tool(self, tool_name, arguments):
+            raise RuntimeError(
+                "Authorization Bearer SECRET_TOKEN_12345"
+            )
+
+    fake_responses = FakeResponses()
+
+    agent = AIAgent(
+        AIClient(),
+        FakeRuntime(),
+    )
+
+    agent.client.client.responses = fake_responses
+
+    result = agent.respond("Analyze microsoft/vscode")
+
+    assert result == "I could not complete the repository request."
+
+    second_call_input = fake_responses.calls[1]["input"]
+
+    assert second_call_input[-1]["type"] == "function_call_output"
+    assert second_call_input[-1]["call_id"] == "call_sensitive_exception"
+    assert "SECRET_TOKEN_12345" not in second_call_input[-1]["output"]
