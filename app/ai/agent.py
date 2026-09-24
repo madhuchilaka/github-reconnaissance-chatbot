@@ -62,16 +62,22 @@ class AIAgent:
                     )
                     continue
 
-                tool_result = self.runtime.call_tool(
-                    item.name,
-                    arguments,
-                )
+                try:
+                    tool_result = self.runtime.call_tool(
+                        item.name,
+                        arguments,
+                    )
+
+                    output = self._serialize_tool_result(tool_result)
+
+                except Exception as exc:
+                    output = f"Tool execution failed: {exc}"
 
                 tool_outputs.append(
                     {
                         "type": "function_call_output",
                         "call_id": item.call_id,
-                        "output": self._serialize_tool_result(tool_result),
+                        "output": output,
                     }
                 )
 
