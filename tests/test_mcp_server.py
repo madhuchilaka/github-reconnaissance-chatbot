@@ -115,6 +115,37 @@ def test_mcp_tool_schemas():
     ]
 
 
+def test_mcp_analyze_repository_description():
+    async def get_tool():
+        server_params = StdioServerParameters(
+            command="python",
+            args=["-m", "app.mcp.server"],
+        )
+
+        async with stdio_client(server_params) as (read_stream, write_stream):
+            async with ClientSession(
+                read_stream,
+                write_stream,
+            ) as session:
+                await session.initialize()
+                result = await session.list_tools()
+
+                return next(
+                    tool
+                    for tool in result.tools
+                    if tool.name == "analyze_repository"
+                )
+
+    tool = asyncio.run(get_tool())
+
+    assert "reconnaissance" in tool.description.lower()
+    assert "files" in tool.description.lower()
+    assert "technologies" in tool.description.lower()
+    assert "domains" in tool.description.lower()
+    assert "apis" in tool.description.lower()
+    assert "security findings" in tool.description.lower()
+
+
 def test_mcp_analyze_repository(monkeypatch):
     class FakeResult:
         files = [{"path": "README.md"}]

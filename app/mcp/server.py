@@ -280,7 +280,12 @@ def get_releases(
 
 @mcp.tool()
 def analyze_repository(owner: str, repo: str) -> dict:
-    """Run reconnaissance analysis on a public GitHub repository."""
+    """
+    Run reconnaissance analysis on a public GitHub repository.
+
+    Analyze repository files and identify technologies, domains, APIs,
+    and potential security findings that require human review.
+    """
     arguments = {
         "owner": owner,
         "repo": repo,
