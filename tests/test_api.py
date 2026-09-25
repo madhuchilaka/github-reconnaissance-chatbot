@@ -798,7 +798,7 @@ def test_chat_handles_ai_failure(monkeypatch):
         "detail": "AI service is temporarily unavailable.",
     }
 
-    
+
 
 
 def test_reconnaissance_agent_instructions():
@@ -1185,3 +1185,95 @@ def test_ai_agent_rejects_non_object_tool_arguments(monkeypatch):
     assert second_call_input[-1]["output"] == (
         "Invalid tool arguments: expected a JSON object."
     )
+
+def test_ai_agent_preserves_structured_reconnaissance_result(monkeypatch):
+    monkeypatch.setattr(
+        "app.ai.client.OPENAI_API_KEY",
+        "test-key",
+    )
+
+    from app.ai.agent import AIAgent
+    from app.ai.client import AIClient
+
+    class TextContent:
+        def __init__(self, text):
+            self.text = text
+
+    class FakeToolCall:
+        type = "function_call"
+        name = "analyze_repository"
+        arguments = '{"owner": "microsoft", "repo": "vscode"}'
+        call_id = "call_analyze_repository"
+
+    class FakeFirstResponse:
+        output = [FakeToolCall()]
+
+    class FakeFinalResponse:
+        output = []
+        output_text = "Repository analysis completed."
+
+    class FakeResponses:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+
+            if len(self.calls) == 1:
+                return FakeFirstResponse()
+
+            return FakeFinalResponse()
+
+    class FakeToolResult:
+        content = [
+            TextContent(
+                '{"files": [{"name": "README.md", "path": "README.md"}], '
+                '"technologies": [{"name": "Python"}], '
+                '"domains": [{"domain": "example.com"}], '
+                '"apis": [{"url": "/api/users"}], '
+                '"security_findings": [{"severity": "low", '
+                '"requires_review": true}]}'
+            )
+        ]
+
+    class FakeRuntime:
+        def list_tools(self):
+            class Result:
+                tools = []
+
+            return Result()
+
+        def call_tool(self, tool_name, arguments):
+            assert tool_name == "analyze_repository"
+            assert arguments == {
+                "owner": "microsoft",
+                "repo": "vscode",
+            }
+            return FakeToolResult()
+
+    fake_responses = FakeResponses()
+
+    agent = AIAgent(
+        AIClient(),
+        FakeRuntime(),
+    )
+
+    agent.client.client.responses = fake_responses
+
+    result = agent.respond("Analyze microsoft/vscode")
+
+    assert result == "Repository analysis completed."
+
+    second_call_input = fake_responses.calls[1]["input"]
+
+    assert second_call_input[-1]["type"] == "function_call_output"
+    assert second_call_input[-1]["call_id"] == "call_analyze_repository"
+
+    output = second_call_input[-1]["output"]
+
+    assert '"files"' in output
+    assert '"technologies"' in output
+    assert '"domains"' in output
+    assert '"apis"' in output
+    assert '"security_findings"' in output
+    assert '"requires_review": true' in output
