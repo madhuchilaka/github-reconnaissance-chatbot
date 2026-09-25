@@ -1042,3 +1042,51 @@ def test_ai_agent_does_not_expose_raw_tool_exception(monkeypatch):
     assert second_call_input[-1]["type"] == "function_call_output"
     assert second_call_input[-1]["call_id"] == "call_sensitive_exception"
     assert "SECRET_TOKEN_12345" not in second_call_input[-1]["output"]
+
+
+
+
+def test_ai_agent_serializes_mcp_tool_result():
+    from app.ai.agent import AIAgent
+
+    class TextContent:
+        def __init__(self, text):
+            self.text = text
+
+    class FakeToolResult:
+        content = [
+            TextContent("first result"),
+            TextContent("second result"),
+        ]
+
+    result = AIAgent._serialize_tool_result(FakeToolResult())
+
+    assert result == "first result\nsecond result"
+
+
+def test_ai_agent_serializes_dictionary_tool_result():
+    from app.ai.agent import AIAgent
+
+    tool_result = {
+        "success": True,
+        "data": {
+            "name": "vscode",
+        },
+    }
+
+    result = AIAgent._serialize_tool_result(tool_result)
+
+    assert result == (
+        '{"success": true, "data": {"name": "vscode"}}'
+    )
+
+
+def test_ai_agent_serializes_empty_mcp_tool_result():
+    from app.ai.agent import AIAgent
+
+    class FakeToolResult:
+        content = []
+
+    result = AIAgent._serialize_tool_result(FakeToolResult())
+
+    assert result == ""
