@@ -44,7 +44,20 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`)
+        let errorMessage =
+          `The reconnaissance backend returned an error (${response.status}).`
+
+        try {
+          const errorData = await response.json()
+
+          if (errorData.detail) {
+            errorMessage = errorData.detail
+          }
+        } catch {
+          // Keep the default error message when the response is not JSON.
+        }
+
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -62,6 +75,7 @@ function App() {
         {
           role: 'assistant',
           content:
+            error.message ||
             'I could not connect to the reconnaissance backend. Please check that the FastAPI server is running.',
         },
       ])
