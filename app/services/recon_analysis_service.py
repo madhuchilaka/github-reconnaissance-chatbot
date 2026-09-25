@@ -10,6 +10,7 @@ from app.models.recon_analysis import ReconAnalysisResult
 class ReconAnalysisService:
     def __init__(self, repository_recon_service) -> None:
         self.repository_recon_service = repository_recon_service
+        self._blob_cache: dict[str, dict] = {}
 
     def load_file_contents(
         self,
@@ -23,11 +24,16 @@ class ReconAnalysisService:
             path = file_data["path"]
             blob_sha = file_data["sha"]
 
-            raw_file = self.repository_recon_service.load_blob(
-                owner,
-                repo,
-                blob_sha,
-            )
+            if blob_sha not in self._blob_cache:
+                self._blob_cache[blob_sha] = (
+                    self.repository_recon_service.load_blob(
+                        owner,
+                        repo,
+                        blob_sha,
+                    )
+                )
+
+            raw_file = self._blob_cache[blob_sha]
 
             loaded_files.append(
                 {
@@ -37,6 +43,24 @@ class ReconAnalysisService:
             )
 
         return loaded_files
+
+
+    def load_blob(
+        self,
+        owner: str,
+        repo: str,
+        blob_sha: str,
+    ) -> dict:
+        if blob_sha not in self._blob_cache:
+            self._blob_cache[blob_sha] = (
+                self.repository_recon_service.load_blob(
+                    owner,
+                    repo,
+                    blob_sha,
+                )
+            )
+
+        return self._blob_cache[blob_sha]
 
     def extract_file_indicators(self, recon_data):
         return extract_repository_files(recon_data)
@@ -60,7 +84,7 @@ class ReconAnalysisService:
         repo: str,
     ):
         technology_service = TechnologyService(
-            file_loader=self.repository_recon_service.load_blob,
+            file_loader=self.load_blob,
             owner=owner,
             repo=repo,
         )

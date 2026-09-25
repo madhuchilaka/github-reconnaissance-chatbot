@@ -267,3 +267,48 @@ def test_analyze_repository_combines_all_analysis_outputs():
         "project",
         "sha-main",
     )
+
+def test_analyze_repository_reuses_cached_blob_for_technology_analysis():
+    repository_recon_service = Mock()
+
+    recon_data = RepositoryReconData(
+        metadata=Mock(),
+        contents=[
+            {
+                "name": "package.json",
+                "path": "package.json",
+                "type": "file",
+                "sha": "sha-package",
+            },
+        ],
+        branches=[],
+        commits=[],
+        pull_requests=[],
+        contributors=[],
+        releases=[],
+    )
+
+    repository_recon_service.collect_repository_for_analysis.return_value = recon_data
+
+    repository_recon_service.load_blob.return_value = {
+        "path": "package.json",
+        "content": (
+            "eyJkZXBlbmRlbmNpZXMiOiB7"
+            "InJlYWN0IjogIl4xOS4wLjAi"
+            "LCAiZXhwcmVzcyI6ICJeNS4wLjAifX0="
+        ),
+        "encoding": "base64",
+    }
+
+    service = ReconAnalysisService(repository_recon_service)
+
+    service.analyze_repository(
+        owner="example",
+        repo="project",
+    )
+
+    repository_recon_service.load_blob.assert_called_once_with(
+        "example",
+        "project",
+        "sha-package",
+    )
