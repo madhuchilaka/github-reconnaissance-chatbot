@@ -11,7 +11,7 @@ function App() {
     },
   ])
   const [loading, setLoading] = useState(false)
-  const [analysis, setAnalysis] = useState(null)
+  
 
   const messagesEndRef = useRef(null)
 
@@ -70,8 +70,6 @@ function App() {
       }
 
       const data = await response.json()
-
-      setAnalysis(data)
 
       setMessages((currentMessages) => [
         ...currentMessages,
@@ -144,17 +142,6 @@ function App() {
             </button>
           </div>
         </section>
-
-        {analysis && (
-          <section className="analysis-panel">
-            <h2>Repository Analysis</h2>
-            <p>Files: {analysis.files.length}</p>
-            <p>Technologies: {analysis.technologies.length}</p>
-            <p>Domains: {analysis.domains.length}</p>
-            <p>APIs: {analysis.apis.length}</p>
-            <p>Security Findings: {analysis.security_findings.length}</p>
-          </section>
-        )}
 
         <section className="chat-box">
           <div className="messages">
