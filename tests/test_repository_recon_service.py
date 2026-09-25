@@ -443,6 +443,9 @@ def test_load_file():
     )
 
 
+
+
+
 def test_collect_repository_for_analysis():
     client = Mock()
 
@@ -501,6 +504,38 @@ def test_collect_repository_for_analysis():
     client.get_pull_requests.assert_not_called()
     client.get_contributors.assert_not_called()
     client.get_releases.assert_not_called()
+
+
+
+def test_collect_repository_for_analysis_propagates_github_api_error():
+    from app.github.exceptions import GitHubAPIError
+
+    client = Mock()
+
+    expected_error = GitHubAPIError(
+        status_code=500,
+        message="GitHub API request failed with status 500",
+    )
+
+    service = RepositoryReconService(client)
+
+    service.collect_metadata = Mock(side_effect=expected_error)
+
+    try:
+        service.collect_repository_for_analysis(
+            "example",
+            "project",
+        )
+    except GitHubAPIError as error:
+        assert error is expected_error
+        assert error.status_code == 500
+        assert error.is_retryable is True
+    else:
+        raise AssertionError(
+            "Expected GitHubAPIError to be propagated"
+        )
+
+
 
 
 def test_collect_contents_from_tree():
