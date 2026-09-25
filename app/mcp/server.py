@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from mcp.server.mcpserver import MCPServer
 
 from app.github.client import GitHubClient
@@ -307,11 +309,11 @@ def analyze_repository(owner: str, repo: str) -> dict:
         )
 
         return {
-            "files": result.files,
-            "technologies": result.technologies,
-            "domains": result.domains,
-            "apis": result.apis,
-            "security_findings": result.security_findings,
+            "files": [asdict(item) for item in result.files],
+            "technologies": [asdict(item) for item in result.technologies],
+            "domains": [asdict(item) for item in result.domains],
+            "apis": [asdict(item) for item in result.apis],
+            "security_findings": [asdict(item) for item in result.security_findings],
         }
     finally:
         client.close()
