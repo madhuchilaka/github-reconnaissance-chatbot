@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 function App() {
@@ -11,6 +11,14 @@ function App() {
     },
   ])
   const [loading, setLoading] = useState(false)
+
+  const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+    })
+  }, [messages, loading])
 
   async function sendMessage(event) {
     event.preventDefault()
