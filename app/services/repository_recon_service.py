@@ -100,6 +100,17 @@ class RepositoryReconService:
             releases=self.collect_releases(owner, repo),
         )
 
+    def collect_repository_for_analysis(self, owner, repo):
+        return RepositoryReconData(
+            metadata=self.collect_metadata(owner, repo),
+            contents=self.collect_contents_recursively(owner, repo),
+            branches=[],
+            commits=[],
+            pull_requests=[],
+            contributors=[],
+            releases=[],
+        )
+
     def collect_contents_recursively(
         self,
         owner: str,

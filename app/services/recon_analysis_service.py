@@ -72,7 +72,7 @@ class ReconAnalysisService:
         owner: str,
         repo: str,
     ) -> ReconAnalysisResult:
-        recon_data = self.repository_recon_service.collect_repository(
+        recon_data = self.repository_recon_service.collect_repository_for_analysis(
             owner,
             repo,
         )

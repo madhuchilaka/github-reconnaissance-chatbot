@@ -441,3 +441,57 @@ def test_load_file():
         "project",
         "package.json",
     )
+
+
+def test_collect_repository_for_analysis():
+    client = Mock()
+
+    metadata = Mock()
+
+    service = RepositoryReconService(client)
+    service.collect_metadata = Mock(return_value=metadata)
+    service.collect_contents_recursively = Mock(
+        return_value=[
+            {
+                "name": "README.md",
+                "path": "README.md",
+                "type": "file",
+            },
+        ]
+    )
+
+    result = service.collect_repository_for_analysis(
+        "example",
+        "project",
+    )
+
+    assert result.metadata is metadata
+    assert result.contents == [
+        {
+            "name": "README.md",
+            "path": "README.md",
+            "type": "file",
+        }
+    ]
+
+    assert result.branches == []
+    assert result.commits == []
+    assert result.pull_requests == []
+    assert result.contributors == []
+    assert result.releases == []
+
+    service.collect_metadata.assert_called_once_with(
+        "example",
+        "project",
+    )
+
+    service.collect_contents_recursively.assert_called_once_with(
+        "example",
+        "project",
+    )
+
+    client.get_branches.assert_not_called()
+    client.get_commits.assert_not_called()
+    client.get_pull_requests.assert_not_called()
+    client.get_contributors.assert_not_called()
+    client.get_releases.assert_not_called()

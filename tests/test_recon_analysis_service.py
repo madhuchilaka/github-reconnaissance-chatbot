@@ -228,7 +228,7 @@ def test_analyze_repository_combines_all_analysis_outputs():
         releases=[],
     )
 
-    repository_recon_service.collect_repository.return_value = recon_data
+    repository_recon_service.collect_repository_for_analysis.return_value = recon_data
 
     repository_recon_service.load_file.return_value = {
         "path": "main.py",
@@ -253,7 +253,7 @@ def test_analyze_repository_combines_all_analysis_outputs():
     assert result.apis == []
     assert result.security_findings == []
 
-    repository_recon_service.collect_repository.assert_called_once_with(
+    repository_recon_service.collect_repository_for_analysis.assert_called_once_with(
         "example",
         "project",
     )
