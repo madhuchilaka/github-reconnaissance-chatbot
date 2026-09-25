@@ -1090,3 +1090,71 @@ def test_ai_agent_serializes_empty_mcp_tool_result():
     result = AIAgent._serialize_tool_result(FakeToolResult())
 
     assert result == ""
+
+
+def test_ai_agent_rejects_non_object_tool_arguments(monkeypatch):
+    monkeypatch.setattr(
+        "app.ai.client.OPENAI_API_KEY",
+        "test-key",
+    )
+
+    from app.ai.agent import AIAgent
+    from app.ai.client import AIClient
+
+    class FakeToolCall:
+        type = "function_call"
+        name = "get_repository"
+        arguments = '"not-an-object"'
+        call_id = "call_non_object"
+
+    class FakeFirstResponse:
+        output = [FakeToolCall()]
+
+    class FakeFinalResponse:
+        output = []
+        output_text = "I could not process the repository request."
+
+    class FakeResponses:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+
+            if len(self.calls) == 1:
+                return FakeFirstResponse()
+
+            return FakeFinalResponse()
+
+    class FakeRuntime:
+        def list_tools(self):
+            class Result:
+                tools = []
+
+            return Result()
+
+        def call_tool(self, tool_name, arguments):
+            raise AssertionError(
+                "Tool should not be called for non-object arguments"
+            )
+
+    fake_responses = FakeResponses()
+
+    agent = AIAgent(
+        AIClient(),
+        FakeRuntime(),
+    )
+
+    agent.client.client.responses = fake_responses
+
+    result = agent.respond("Analyze microsoft/vscode")
+
+    assert result == "I could not process the repository request."
+
+    second_call_input = fake_responses.calls[1]["input"]
+
+    assert second_call_input[-1]["type"] == "function_call_output"
+    assert second_call_input[-1]["call_id"] == "call_non_object"
+    assert second_call_input[-1]["output"] == (
+        "Invalid tool arguments: expected a JSON object."
+    )

@@ -62,6 +62,16 @@ class AIAgent:
                     )
                     continue
 
+                if not isinstance(arguments, dict):
+                    tool_outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": item.call_id,
+                            "output": "Invalid tool arguments: expected a JSON object.",
+                        }
+                    )
+                    continue
+
                 try:
                     tool_result = self.runtime.call_tool(
                         item.name,
