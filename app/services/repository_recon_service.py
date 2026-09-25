@@ -100,10 +100,23 @@ class RepositoryReconService:
             releases=self.collect_releases(owner, repo),
         )
 
-    def collect_repository_for_analysis(self, owner, repo):
+    def collect_repository_for_analysis(
+        self,
+        owner: str,
+        repo: str,
+    ) -> RepositoryReconData:
+        metadata = self.collect_metadata(
+            owner,
+            repo,
+        )
+
         return RepositoryReconData(
-            metadata=self.collect_metadata(owner, repo),
-            contents=self.collect_contents_recursively(owner, repo),
+            metadata=metadata,
+            contents=self.collect_contents_from_tree(
+                owner,
+                repo,
+                metadata.default_branch,
+            ),
             branches=[],
             commits=[],
             pull_requests=[],
@@ -143,6 +156,38 @@ class RepositoryReconService:
 
         return files
 
+    def collect_contents_from_tree(
+        self,
+        owner: str,
+        repo: str,
+        tree_sha: str,
+    ) -> list[dict]:
+        tree_data = self.client.get_tree(
+            owner,
+            repo,
+            tree_sha,
+        )
+
+        files = []
+
+        for item in tree_data.get("tree", []):
+            if item.get("type") != "blob":
+                continue
+
+            path = item["path"]
+
+            files.append(
+                {
+                    "name": path.rsplit("/", 1)[-1],
+                    "path": path,
+                    "type": "file",
+                    "sha": item["sha"],
+                    "size": item.get("size"),
+                }
+            )
+
+        return files
+
     def load_file(
         self,
         owner: str,
@@ -153,4 +198,16 @@ class RepositoryReconService:
             owner,
             repo,
             path,
+        )
+
+    def load_blob(
+        self,
+        owner: str,
+        repo: str,
+        blob_sha: str,
+    ):
+        return self.client.get_blob(
+            owner,
+            repo,
+            blob_sha,
         )

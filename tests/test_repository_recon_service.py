@@ -446,16 +446,18 @@ def test_load_file():
 def test_collect_repository_for_analysis():
     client = Mock()
 
-    metadata = Mock()
+    metadata = Mock(default_branch="main")
 
     service = RepositoryReconService(client)
     service.collect_metadata = Mock(return_value=metadata)
-    service.collect_contents_recursively = Mock(
+    service.collect_contents_from_tree = Mock(
         return_value=[
             {
                 "name": "README.md",
                 "path": "README.md",
                 "type": "file",
+                "sha": "blob123",
+                "size": 100,
             },
         ]
     )
@@ -471,7 +473,9 @@ def test_collect_repository_for_analysis():
             "name": "README.md",
             "path": "README.md",
             "type": "file",
-        }
+            "sha": "blob123",
+            "size": 100,
+        },
     ]
 
     assert result.branches == []
@@ -485,11 +489,163 @@ def test_collect_repository_for_analysis():
         "project",
     )
 
-    service.collect_contents_recursively.assert_called_once_with(
+    service.collect_contents_from_tree.assert_called_once_with(
+        "example",
+        "project",
+        "main",
+    )
+
+    client.get_repository_contents.assert_not_called()
+    client.get_branches.assert_not_called()
+    client.get_commits.assert_not_called()
+    client.get_pull_requests.assert_not_called()
+    client.get_contributors.assert_not_called()
+    client.get_releases.assert_not_called()
+
+
+def test_collect_contents_from_tree():
+    client = Mock()
+
+    service = RepositoryReconService(client)
+
+    service.collect_metadata = Mock(
+        return_value=Mock(default_branch="main")
+    )
+
+    client.get_tree.return_value = {
+        "sha": "tree123",
+        "tree": [
+            {
+                "path": "README.md",
+                "mode": "100644",
+                "type": "blob",
+                "sha": "blob123",
+                "size": 100,
+            },
+            {
+                "path": "app",
+                "mode": "040000",
+                "type": "tree",
+                "sha": "dir123",
+            },
+            {
+                "path": "app/main.py",
+                "mode": "100644",
+                "type": "blob",
+                "sha": "blob456",
+                "size": 200,
+            },
+        ],
+        "truncated": False,
+    }
+
+    result = service.collect_contents_from_tree(
+        "example",
+        "project",
+        "main",
+    )
+
+    assert result == [
+        {
+            "name": "README.md",
+            "path": "README.md",
+            "type": "file",
+            "sha": "blob123",
+            "size": 100,
+        },
+        {
+            "name": "main.py",
+            "path": "app/main.py",
+            "type": "file",
+            "sha": "blob456",
+            "size": 200,
+        },
+    ]
+
+    client.get_tree.assert_called_once_with(
+        "example",
+        "project",
+        "main",
+    )
+
+def test_load_blob():
+    client = Mock()
+
+    client.get_blob.return_value = {
+        "sha": "blob123",
+        "size": 12,
+        "content": "SGVsbG8gV29ybGQ=",
+        "encoding": "base64",
+    }
+
+    service = RepositoryReconService(client)
+
+    result = service.load_blob(
+        "example",
+        "project",
+        "blob123",
+    )
+
+    assert result == {
+        "sha": "blob123",
+        "size": 12,
+        "content": "SGVsbG8gV29ybGQ=",
+        "encoding": "base64",
+    }
+
+    client.get_blob.assert_called_once_with(
+        "example",
+        "project",
+        "blob123",
+    )
+
+def test_collect_repository_for_analysis_uses_tree():
+    client = Mock()
+
+    metadata = Mock(default_branch="main")
+
+    service = RepositoryReconService(client)
+    service.collect_metadata = Mock(return_value=metadata)
+    service.collect_contents_from_tree = Mock(
+        return_value=[
+            {
+                "name": "README.md",
+                "path": "README.md",
+                "type": "file",
+                "sha": "blob123",
+                "size": 100,
+            },
+        ]
+    )
+
+    result = service.collect_repository_for_analysis(
         "example",
         "project",
     )
 
+    assert result.metadata is metadata
+    assert result.contents == [
+        {
+            "name": "README.md",
+            "path": "README.md",
+            "type": "file",
+            "sha": "blob123",
+            "size": 100,
+        },
+    ]
+
+    service.collect_metadata.assert_called_once_with(
+        "example",
+        "project",
+    )
+
+    service.collect_contents_from_tree.assert_called_once_with(
+        "example",
+        "project",
+        "main",
+    )
+
+    client.get_repository_contents.assert_not_called()
     client.get_branches.assert_not_called()
     client.get_commits.assert_not_called()
     client.get_pull_requests.assert_not_called()

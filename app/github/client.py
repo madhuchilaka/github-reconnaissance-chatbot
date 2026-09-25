@@ -151,6 +151,48 @@ class GitHubClient:
         )
 
 
+    def get_tree(
+        self,
+        owner: str,
+        repo: str,
+        tree_sha: str,
+    ) -> dict:
+        if not owner:
+            raise ValueError("Repository owner cannot be empty")
+
+        if not repo:
+            raise ValueError("Repository name cannot be empty")
+
+        if not tree_sha:
+            raise ValueError("Tree SHA cannot be empty")
+
+        return self._request_json(
+            "GET",
+            f"/repos/{owner}/{repo}/git/trees/{tree_sha}",
+            params={"recursive": "1"},
+        )
+
+    def get_blob(
+        self,
+        owner: str,
+        repo: str,
+        blob_sha: str,
+    ) -> dict:
+        if not owner:
+            raise ValueError("Repository owner cannot be empty")
+
+        if not repo:
+            raise ValueError("Repository name cannot be empty")
+
+        if not blob_sha:
+            raise ValueError("Blob SHA cannot be empty")
+
+        return self._request_json(
+            "GET",
+            f"/repos/{owner}/{repo}/git/blobs/{blob_sha}",
+        )
+
+
     def get_commits(
         self,
         owner: str,

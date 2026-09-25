@@ -9,7 +9,7 @@ from app.services.recon_analysis_service import ReconAnalysisService
 def test_load_file_contents_decodes_repository_files():
     repository_recon_service = Mock()
 
-    repository_recon_service.load_file.side_effect = [
+    repository_recon_service.load_blob.side_effect = [
         {
             "path": "main.py",
             "content": base64.b64encode(
@@ -29,8 +29,14 @@ def test_load_file_contents_decodes_repository_files():
     service = ReconAnalysisService(repository_recon_service)
 
     files = [
-        {"path": "main.py"},
-        {"path": "README.md"},
+        {
+            "path": "main.py",
+            "sha": "sha-main",
+        },
+        {
+            "path": "README.md",
+            "sha": "sha-readme",
+        },
     ]
 
     result = service.load_file_contents(
@@ -50,10 +56,7 @@ def test_load_file_contents_decodes_repository_files():
         },
     ]
 
-    assert repository_recon_service.load_file.call_count == 2
-
-
-
+    assert repository_recon_service.load_blob.call_count == 2
 
 
 def test_extract_file_indicators():
@@ -219,6 +222,7 @@ def test_analyze_repository_combines_all_analysis_outputs():
                 "name": "main.py",
                 "path": "main.py",
                 "type": "file",
+                "sha": "sha-main",
             },
         ],
         branches=[],
@@ -230,7 +234,7 @@ def test_analyze_repository_combines_all_analysis_outputs():
 
     repository_recon_service.collect_repository_for_analysis.return_value = recon_data
 
-    repository_recon_service.load_file.return_value = {
+    repository_recon_service.load_blob.return_value = {
         "path": "main.py",
         "content": "cHJpbnQoJ2hlbGxvJyk=",
         "encoding": "base64",
@@ -258,8 +262,8 @@ def test_analyze_repository_combines_all_analysis_outputs():
         "project",
     )
 
-    repository_recon_service.load_file.assert_called_once_with(
+    repository_recon_service.load_blob.assert_called_once_with(
         "example",
         "project",
-        "main.py",
+        "sha-main",
     )

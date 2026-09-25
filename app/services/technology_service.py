@@ -72,7 +72,7 @@ class TechnologyService:
         if package_files and self.file_loader is not None:
             package_file = package_files[0]
             package_path = package_file["path"]
-            package_data = self.parse_package_data(package_path)
+            package_data = self.parse_package_data(package_file)
 
             for detector in (detect_react, detect_express):
                 result = detector(package_path, package_data)
@@ -83,14 +83,14 @@ class TechnologyService:
         return indicators
 
 
-    def parse_package_data(self, path: str) -> dict:
+    def parse_package_data(self, file_data: dict) -> dict:
         if self.file_loader is None:
             raise ValueError("File loader is required")
 
         file_data = self.file_loader(
             self.owner,
             self.repo,
-            path,
+            file_data["sha"],
         )
         content = decode_file_content(file_data)
 

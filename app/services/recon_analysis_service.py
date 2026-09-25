@@ -21,11 +21,12 @@ class ReconAnalysisService:
 
         for file_data in files:
             path = file_data["path"]
+            blob_sha = file_data["sha"]
 
-            raw_file = self.repository_recon_service.load_file(
+            raw_file = self.repository_recon_service.load_blob(
                 owner,
                 repo,
-                path,
+                blob_sha,
             )
 
             loaded_files.append(
@@ -59,7 +60,7 @@ class ReconAnalysisService:
         repo: str,
     ):
         technology_service = TechnologyService(
-            file_loader=self.repository_recon_service.load_file,
+            file_loader=self.repository_recon_service.load_blob,
             owner=owner,
             repo=repo,
         )

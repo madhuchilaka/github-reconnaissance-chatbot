@@ -69,6 +69,7 @@ def test_extract_technologies_from_package_json():
                 "name": "package.json",
                 "path": "package.json",
                 "type": "file",
+                "sha": "blob-package-json",
             },
         ],
         branches=[],
@@ -134,6 +135,7 @@ def test_extract_technologies_using_repository_recon_service():
                 "name": "package.json",
                 "path": "package.json",
                 "type": "file",
+                "sha": "blob-package-json",
             },
         ],
         branches=[],
@@ -145,7 +147,7 @@ def test_extract_technologies_using_repository_recon_service():
 
     client = Mock()
 
-    client.get_file.return_value = {
+    client.get_blob.return_value = {
         "name": "package.json",
         "path": "package.json",
         "type": "file",
@@ -156,7 +158,7 @@ def test_extract_technologies_using_repository_recon_service():
     repository_recon_service = RepositoryReconService(client)
 
     technology_service = TechnologyService(
-        file_loader=repository_recon_service.load_file,
+        file_loader=repository_recon_service.load_blob,
         owner="example",
         repo="project",
     )
@@ -181,8 +183,8 @@ def test_extract_technologies_using_repository_recon_service():
         ),
     ]
 
-    client.get_file.assert_called_once_with(
+    client.get_blob.assert_called_once_with(
         "example",
         "project",
-        "package.json",
+        "blob-package-json",
     )
