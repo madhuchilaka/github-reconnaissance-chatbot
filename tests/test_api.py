@@ -773,6 +773,33 @@ def test_chat(monkeypatch):
     }
 
 
+def test_chat_handles_ai_failure(monkeypatch):
+    class FakeAIAgent:
+        def __init__(self, client, runtime):
+            pass
+
+        def respond(self, user_message):
+            raise RuntimeError("AI service unavailable")
+
+    monkeypatch.setattr(
+        "app.api.main.AIAgent",
+        FakeAIAgent,
+    )
+
+    response = client.post(
+        "/chat",
+        json={
+            "message": "Analyze microsoft/vscode",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "AI service is temporarily unavailable.",
+    }
+
+    
+
 
 def test_reconnaissance_agent_instructions():
     from app.ai.prompts import RECONNAISSANCE_AGENT_INSTRUCTIONS

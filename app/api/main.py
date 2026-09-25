@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException
+
 
 from app.api.schemas import (
     ChatRequest,
@@ -19,9 +22,21 @@ from app.mcp.client import MCPClient
 from app.mcp.runtime import MCPRuntime
 
 
+
 app = FastAPI(
     title="AI-Powered GitHub Reconnaissance API",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -92,6 +107,12 @@ def chat(request: ChatRequest) -> ChatResponse:
         mcp_runtime,
     )
 
-    result = agent.respond(request.message)
+    try:
+        result = agent.respond(request.message)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is temporarily unavailable.",
+        ) from exc
 
     return ChatResponse(response=result)
