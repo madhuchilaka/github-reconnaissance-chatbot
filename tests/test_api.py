@@ -745,6 +745,36 @@ def test_recon_analysis(monkeypatch):
         "security_findings": [],
     }
 
+def test_recon_analysis_handles_github_api_error(monkeypatch):
+    from app.github.exceptions import GitHubAPIError
+
+    class FakeReconAnalysisService:
+        def __init__(self, repository_recon_service):
+            pass
+
+        def analyze_repository(self, owner, repo):
+            raise GitHubAPIError(
+                status_code=404,
+                message="GitHub API request failed with status 404",
+            )
+
+    monkeypatch.setattr(
+        "app.api.main.ReconAnalysisService",
+        FakeReconAnalysisService,
+    )
+
+    response = client.post(
+        "/recon/analyze",
+        json={
+            "owner": "microsoft",
+            "repo": "does-not-exist",
+        },
+    )
+
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": "GitHub API request failed during repository analysis."
+    }
 
 def test_chat(monkeypatch):
     class FakeAIAgent:

@@ -11,6 +11,7 @@ from app.api.schemas import (
     ToolRequest,
 )
 from app.github.client import GitHubClient
+from app.github.exceptions import GitHubAPIError
 from app.services.recon_analysis_service import ReconAnalysisService
 from app.services.repository_recon_service import RepositoryReconService
 from app.tools.dispatcher import ToolDispatcher
@@ -93,6 +94,11 @@ def recon_analysis(
             result,
             from_attributes=True,
         )
+    except GitHubAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="GitHub API request failed during repository analysis.",
+        ) from exc
     finally:
         client.close()
 
