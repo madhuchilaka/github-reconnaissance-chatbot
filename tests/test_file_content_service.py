@@ -1,4 +1,7 @@
-from app.services.file_content_service import decode_file_content
+from app.services.file_content_service import (
+    BinaryFileError,
+    decode_file_content,
+)
 
 
 def test_decode_file_content():
@@ -40,4 +43,32 @@ def test_decode_file_content_rejects_unsupported_encoding():
     else:
         raise AssertionError(
             "Expected ValueError was not raised"
+        )
+
+def test_decode_file_content_accepts_empty_file():
+    file_data = {
+        "content": "",
+        "encoding": "base64",
+    }
+
+    result = decode_file_content(file_data)
+
+    assert result == ""
+
+
+def test_decode_file_content_rejects_binary_content():
+    file_data = {
+        "content": "iVBORw0KGgo=",
+        "encoding": "base64",
+    }
+
+    try:
+        decode_file_content(file_data)
+    except BinaryFileError as error:
+        assert str(error) == (
+            "File content is binary and cannot be decoded as UTF-8"
+        )
+    else:
+        raise AssertionError(
+            "Expected BinaryFileError was not raised"
         )

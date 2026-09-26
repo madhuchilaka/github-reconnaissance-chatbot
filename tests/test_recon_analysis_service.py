@@ -58,6 +58,54 @@ def test_load_file_contents_decodes_repository_files():
 
     assert repository_recon_service.load_blob.call_count == 2
 
+def test_load_file_contents_skips_binary_files():
+    repository_recon_service = Mock()
+
+    repository_recon_service.load_blob.side_effect = [
+        {
+            "path": "image.png",
+            "content": base64.b64encode(
+                b"\x89PNG\r\n\x1a\n"
+            ).decode("ascii"),
+            "encoding": "base64",
+        },
+        {
+            "path": "main.py",
+            "content": base64.b64encode(
+                b"print('hello')"
+            ).decode("ascii"),
+            "encoding": "base64",
+        },
+    ]
+
+    service = ReconAnalysisService(repository_recon_service)
+
+    files = [
+        {
+            "path": "image.png",
+            "sha": "sha-image",
+        },
+        {
+            "path": "main.py",
+            "sha": "sha-main",
+        },
+    ]
+
+    result = service.load_file_contents(
+        owner="example",
+        repo="project",
+        files=files,
+    )
+
+    assert result == [
+        {
+            "path": "main.py",
+            "content": "print('hello')",
+        },
+    ]
+
+    assert repository_recon_service.load_blob.call_count == 2
+
 
 def test_extract_file_indicators():
     repository_recon_service = Mock()

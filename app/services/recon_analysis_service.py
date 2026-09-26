@@ -1,4 +1,7 @@
-from app.services.file_content_service import decode_file_content
+from app.services.file_content_service import (
+    BinaryFileError,
+    decode_file_content,
+)
 from app.services.file_extractor import extract_repository_files
 from app.services.domain_extractor import extract_repository_domains
 from app.services.api_extractor import extract_repository_apis
@@ -35,10 +38,15 @@ class ReconAnalysisService:
 
             raw_file = self._blob_cache[blob_sha]
 
+            try:
+                content = decode_file_content(raw_file)
+            except BinaryFileError:
+                continue
+
             loaded_files.append(
                 {
                     "path": path,
-                    "content": decode_file_content(raw_file),
+                    "content": content,
                 }
             )
 
