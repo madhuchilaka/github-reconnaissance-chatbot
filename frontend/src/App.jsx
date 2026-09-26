@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import { sendChatMessage } from './api'
 
 function App() {
   const [message, setMessage] = useState('')
@@ -42,34 +43,7 @@ function App() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: trimmedMessage,
-        }),
-      })
-
-      if (!response.ok) {
-        let errorMessage =
-          `The reconnaissance backend returned an error (${response.status}).`
-
-        try {
-          const errorData = await response.json()
-
-          if (errorData.detail) {
-            errorMessage = errorData.detail
-          }
-        } catch {
-          // Keep the default error message when the response is not JSON.
-        }
-
-        throw new Error(errorMessage)
-      }
-
-      const data = await response.json()
+      const data = await sendChatMessage(trimmedMessage)
 
       setMessages((currentMessages) => [
         ...currentMessages,
